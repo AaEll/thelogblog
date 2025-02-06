@@ -80,8 +80,6 @@ GROUP BY 2,3
 event_db.read("SELECT * FROM salient_terms_extract WHERE extract_date=<TODAY>")
 .map( record -> key_db.insert(record.term, record.item_id, record.val))
 ```
-
-
 ### How Salient Terms Fits into the Ranking/Recommendations Stack
 
 In the age of deep learning, why do we still use such simple algorithms? If you're asking this question,
@@ -97,7 +95,11 @@ hundreds of millions to trillions of items. While there are some applications of
 are not scalable to evaluating hundreds of millions of items within the 250ms users expect from search and recommendations applications [8][9].
 
 Typically, retrieval is achieved by combining a variety of heuristics, collaborative filtering, and deep learning algorithms that can scale 
-to webscale problems [4][7]. Salient terms fits neatly into the retrieval layer as another performant heuristic algorithm for modelling query\<\-\>item relevance. 
+to webscale problems [4][7]. Salient terms fits neatly into the retrieval layer as another performant heuristic algorithm for modelling query\<\-\>item relevance.
+
+Salient terms can be used to the highest weight documents using a inverse index. 
+Alternatively, the term weights can be used in heuristic algorithms e.g. page-rank. 
+Lastly, term weights can be used as features in downstream ranking models.  
 
 ### Evaluation
 

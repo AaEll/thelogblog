@@ -1,0 +1,153 @@
+---
+title: 'The Lost History of Salient Terms'
+publishedAt: '2024-02-01'
+summary: 'Salient terms, the algorithm academia forgot.'
+---
+
+## Origins of Salient Terms 
+
+The term 'salient terms' in the information retrieval literature is first referenced in an almost-uncited conference paper from September 2002, 
+*Using Salient Words to Perform Categorization of Web Sites\** [1]. This paper from the same era of information retrieval as page-rank [2], 
+has only received 1 citation as of the writing of this blog post. Later the same year, *Detecting Similar Documents Using Salient Terms* is published
+by Cooper et.al. from the IBM Watson [3].
+
+Despite these humble origins, salient terms has become a widely known
+set of algorithms within industry, used at companies across Silicon Valley, spread by the exodus of Nooglers spreading the ideas behind 
+the industry leading search engine [4].
+
+
+Since then, *salient terms* has come to represent a variety of term weighting algorithm with the goal of highly weighting terms related to the subject of the document [4].
+
+For example, this article is a document that references 'salient-terms' as a term, and 'page-rank' as a term. 
+However, if a user was searching for 'page-rank' this document would not be relevant, and page rank is only tertially involved in the article. 
+The key subject of this article and most salient term is 'salient-terms'.
+
+
+### Popularity Salient Terms 
+
+Popularity has long been an embarrassingly effective signal, as shown in Cañamares, Castells (2018), winner of SIGIR 2018 best paper award [5].
+
+The Salient Terms algorithm I'd like to bring forward is Popularity Salient Terms.
+
+<u>Popularity Salient Terms</u>
+```
+key_db // our distributed keystore database of (term, item_id) : val
+key_db.increment(term,item_id) --> increment val by 1
+query // user search query
+query_terms // user search query split into a list of terms
+item_id // unique item ID of item interacted with
+
+// when user interacts with a search item for a given query
+...
+for term in query_terms:
+  key_db.increment(term, item_id)
+```
+
+We could make modifications if we want to maintain a moving window for popularity
+
+<u>Moving Window Popularity Salient Terms</u>
+```
+event_db // our event logging database  
+event_db.salient_terms_events // an event table with columns(query_terms, item_id, timestamp)
+event_db.salient_terms_events 
+  .insert(query_terms,item_id, timestamp) --> insert a record into salient_terms
+event_db.salient_terms_extract // a table we store daily extract with columns (extract_date, term, item_id)
+key_db // our distributed keystore database of (term, item_id) : val
+key_db.set(term,item_id,new_val) --> set (term,item_id) to new_val
+key_db.reset() --> drop records or reset val to 0
+query // user search query
+query_terms // user search query split into a list of terms
+item_id // unique item ID of item interacted with
+N // number of days in our moving window
+<TODAY-N> , <TODAY> // SQL Macros for the relevant dates
+
+// when user interacts with a search item for a given query
+...
+db.insert(query_terms, item_id)
+
+// in a daily sql-pipeline
+INSERT INTO salient_terms_extract
+(
+SELECT <TODAY>, exploded_terms.value as term, item_id, COUNT(*)
+FROM salient_terms_events LATERAL,
+    EXPLODE(query_terms) as exploded_terms
+WHERE salient_terms_events.timestamp
+    BETWEEN <TODAY-N> AND <TODAY> 
+GROUP BY 2,3
+)
+
+//extract salient_terms_extract into key_db using some glue code
+event_db.read("SELECT * FROM salient_terms_extract WHERE extract_date=<TODAY>")
+.map( record -> key_db.insert(record.term, record.item_id, record.val))
+```
+
+
+### How Salient Terms Fits into the Ranking/Recommendations Stack
+
+In the age of deep learning, why do we still use such simple algorithms? If you're asking this question,
+you're probably not familiar with web-scale information retrieval in practice. 
+
+Across state-of-the-art search and recommendations systems the
+*query-understanding -> query-expansion -> retrieval -> point-wise ranking -> conditional reranking* architecture is well established [4][7].
+This architecture is also relevant for LLM applications, where RAG pipelines are often re-inventing the wheel
+of the established state-of-the-art architecture for search and recommendations.
+
+Within the *retrieval* layer, we need to *'retrieve'* a high-recall set of up to several thousand items from a pool of 
+hundreds of millions to trillions of items. While there are some applications of deep learning in retrieval, large neural networks
+are not scalable to evaluating hundreds of millions of items within the 250ms users expect from search and recommendations applications [8][9].
+
+Typically, retrieval is achieved by combining a variety of heuristics, collaborative filtering, and deep learning algorithms that can scale 
+to webscale problems [4][7]. Salient terms fits neatly into the retrieval layer as another performant heuristic algorithm for modelling query\<\-\>item relevance. 
+
+### Evaluation
+
+I'll fill this in later, if I have a free weekend \<.\< \>.\>
+
+
+### Conclusions
+
+It's an unfortunate reality the field of information retrieval has diverged between academia and industry. 
+With the greatest information retrieval research and innovation hidden behind the gilded walls of Silicon Valley giants.
+
+We can envision a future where industry can open the gates to academia and share decades of experimentation and research. 
+
+However, that future is unlikely to happen. 
+Search hasn't been this competitive since the 2000s, with startups, you.com, perplexity.ai and more
+creating LLM first search engines, and chatGPT threatening to change user knowledge searching behavior away from search as a whole [10][11][12].
+Google's global search market share has dropped to below 90% for the first time since 2015 [13].
+
+Algorithms have never been the strongest competitive moat.
+Especially with the Silcon Valley exodus of 2023, shuffling employees between tech giants
+or ejecting them into new markets across the world [4].
+
+I tried to avoid sharing any information not already widely known in the industry, comparing notes from colleagues who work(ed) at dozens of US, Singaporean and Chinese tech giants. 
+Luckily Im not currently subject to any NDA. So I can share this information freely :D
+
+
+## Bibliography
+
+[1] Using Salient Words to Perform Categorization of Web Sites\*
+
+[2] The PageRank Citation Ranking: Bringing Order to the Web.
+
+[3] Detecting Similar Documents Using Salient Terms 
+
+[4] Bruh just trust me
+
+[5] Statistical Interpretation of Term Specificity and Its Application in Retrieval
+
+[6] Should I Follow the Crowd?: A Probabilistic Analysis of the Effectiveness of Popularity in Recommender Systems
+
+[7] https://www.amazon.science/blog/from-structured-search-to-learning-to-rank-and-retrieve
+
+[8] Miller, R. B. (1968). Response time in man-computer conversational transactions. Proc. AFIPS Fall Joint Computer Conference Vol. 33, 267-277.
+
+[9] User Preference and Search Engine Latency
+
+[10] https://you.com/
+
+[11] https://www.perplexity.ai/
+
+[12] How does AI chat change search behaviors?
+
+[13] https://searchengineland.com/google-search-market-share-drops-2024-450497

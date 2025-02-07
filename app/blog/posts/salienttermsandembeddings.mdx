@@ -27,7 +27,9 @@ The key subject of this article and most salient term is 'salient-terms'.
 Popularity has long been an embarrassingly effective signal, as shown in Cañamares, Castells (2018), winner of SIGIR 2018 best paper award [5].
 
 The Salient Terms algorithm I'd like to bring forward is Popularity Salient Terms.
-Popularity Salient Terms maintains a count of popularity at a per-item-term level.
+Popularity Salient Terms maintains a count of interactions at a per-item-term level.
+Using an inverse-index, this count can then be used to retrieve the most interacted items for 
+each term within a query.
 
 <u>Popularity Salient Terms</u>
 ```

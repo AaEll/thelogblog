@@ -11,30 +11,9 @@ The term 'salient terms' in the information retrieval literature is first refere
 has only received 1 citation as of the writing of this blog post. Later the same year, *Detecting Similar Documents Using Salient Terms* is published
 by Cooper et.al. from the IBM Watson [3].
 
-Salient terms came into the spotlight after the March 2024 leak of Google's search algorithm factors [15].
-83 of Google' s
+Despite these humble origins, salient terms has become a widely known set of algorithms within industry [4]. Salient terms has come to represent a variety of term weighting algorithm with the goal of highly weighting terms related to the subject of the document [4].
 
-Within the leaked terms, salient terms appears in two distinct factors SalientTermSet, . 
-
-<p>SalientTerm can be two things depending on where this message is. When right under a SalientTermSet, it is a normalized term and weight pair, along with other term-level data. When under another SalientTerm message, it is a non-normalized original term (see original_term field).
-...
-*   `salience` (*type:* `number()`, *default:* `nil`) - salience is the importance of the term as a descriptor in [0, 1] (the higher the more important).
-</p>
-
-```
-SalientTermSet is a collection of terms (unigrams and bigrams) with associated weights that can describe something. The "salient terms".
-``` [15]
-
-We can infer *salient terms* as a term weighting algorithm with the goal of highly weighting terms related to the subject of the document.
-
-For example, this article is a document that references 'salient-terms' as a term, and 'page-rank' as a term. 
-However, if a user was searching for 'page-rank' this document would not be relevant, and page rank is only tertially involved in the article. 
-The key subject of this article and most salient term is 'salient-terms'.
-
-### Using Salient Words to Perform Categorization of Web Sites
-
-Leveraging 
-Using Salient Words to Perform Categorization of Web Sites
+For example, this article is a document that references 'salient-terms' as a term, and 'page-rank' as a term. However, if a user was searching for 'page-rank' this document would not be relevant, and page rank is only tertially involved in the article. The key subject of this article and most salient term is 'salient-terms'.
 
 
 ### Popularity Salient Terms 

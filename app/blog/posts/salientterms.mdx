@@ -11,12 +11,30 @@ The term 'salient terms' in the information retrieval literature is first refere
 has only received 1 citation as of the writing of this blog post. Later the same year, *Detecting Similar Documents Using Salient Terms* is published
 by Cooper et.al. from the IBM Watson [3].
 
-Despite these humble origins, salient terms has become a widely known
-set of algorithms within industry [4]. *Salient terms* has come to represent a variety of term weighting algorithm with the goal of highly weighting terms related to the subject of the document [4].
+Salient terms came into the spotlight after the March 2024 leak of Google's search algorithm factors [15].
+83 of Google' s
+
+Within the leaked terms, salient terms appears in two distinct factors SalientTermSet, . 
+
+<p>SalientTerm can be two things depending on where this message is. When right under a SalientTermSet, it is a normalized term and weight pair, along with other term-level data. When under another SalientTerm message, it is a non-normalized original term (see original_term field).
+...
+*   `salience` (*type:* `number()`, *default:* `nil`) - salience is the importance of the term as a descriptor in [0, 1] (the higher the more important).
+</p>
+
+```
+SalientTermSet is a collection of terms (unigrams and bigrams) with associated weights that can describe something. The "salient terms".
+``` [15]
+
+We can infer *salient terms* as a term weighting algorithm with the goal of highly weighting terms related to the subject of the document.
 
 For example, this article is a document that references 'salient-terms' as a term, and 'page-rank' as a term. 
 However, if a user was searching for 'page-rank' this document would not be relevant, and page rank is only tertially involved in the article. 
 The key subject of this article and most salient term is 'salient-terms'.
+
+### Using Salient Words to Perform Categorization of Web Sites
+
+Leveraging 
+Using Salient Words to Perform Categorization of Web Sites
 
 
 ### Popularity Salient Terms 
@@ -50,7 +68,7 @@ event_db // our event logging database
 event_db.salient_terms_events // an event table with columns(query_terms, item_id, timestamp)
 event_db.salient_terms_events 
   .insert(query_terms,item_id, timestamp) --> insert a record into salient_terms
-event_db.salient_terms_extract // a table we store daily extract with columns (extract_date, term, item_id)
+event_db.salient_terms_extract // a table we store daily extract 
 key_db // our distributed keystore database of (term, item_id) : val
 key_db.set(term,item_id,new_val) --> set (term,item_id) to new_val
 key_db.reset() --> drop records or reset val to 0
@@ -120,8 +138,6 @@ Algorithms have never been the strongest competitive moat.
 Especially with the Silcon Valley exodus of 2023, shuffling employees between tech giants
 or ejecting them into new markets across the world [4].
 
-However, Im not under any NDA. So I can share this information freely :D
-
 
 ## Bibliography
 
@@ -132,6 +148,8 @@ However, Im not under any NDA. So I can share this information freely :D
 [3] Cooper, James & Coden, Anni & Brown, Eric. (2002). Detecting similar documents using salient terms. 245-251. 10.1145/584792.584835. 
 
 [4] Bruh just trust me
+
+[5] https://github.com/yoshi-code-bot/elixir-google-api/commit/d7a637f4391b2174a2cf43ee11e6577a204a161e
 
 [5] Jones, Karen. (2021). A Statistical Interpretation of Term Specificity and Its Application in Retrieval (1972). 10.7551/mitpress/12274.003.0037. 
 
@@ -150,3 +168,5 @@ However, Im not under any NDA. So I can share this information freely :D
 [12] Capra, R., & Arguello, J. (2023). How does AI chat change search behaviors?. arXiv preprint arXiv:2307.03826.
 
 [13] Goodwin, D. (2025, January 20). Google’s search market share drops below 90% for first time since 2015. Search Engine Land. https://searchengineland.com/google-search-market-share-drops-2024-450497
+
+[14]

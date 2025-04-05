@@ -82,24 +82,19 @@ In the age of deep learning, why do we still use such simple algorithms? If you'
 you're probably not familiar with web-scale information retrieval in practice. 
 
 Across state-of-the-art search and recommendations systems the
-*query-understanding -> query-expansion -> retrieval -> point-wise ranking -> conditional reranking* architecture is well established [4][7].
+*query-understanding -> query-expansion -> retrieval -> point-wise ranking -> conditional reranking* architecture is well established [4][6].
 This architecture is also relevant for LLM applications, where RAG pipelines are often re-inventing the wheel
 of the established state-of-the-art architecture for search and recommendations.
 
 Within the *retrieval* layer, we need to *'retrieve'* a high-recall set of up to several thousand items from a pool of 
 hundreds of millions to trillions of items. While there are some applications of deep learning in retrieval, large neural networks
-are not scalable to evaluating hundreds of millions of items within the 250ms users expect from search and recommendations applications [8][9].
+are not scalable to evaluating hundreds of millions of items within the 250ms users expect from search and recommendations applications [7][8].
 
 Typically, retrieval is achieved by combining a variety of heuristics, collaborative filtering, and dense vector search that can scale 
-to webscale problems [4][7]. Salient terms fits neatly into the retrieval layer as another performant heuristic algorithm for modelling query\<\-\>item relevance.
+to webscale problems [4][6]. Salient terms fits neatly into the retrieval layer as another performant heuristic algorithm for modelling query\<\-\>item relevance.
 
 Salient terms can be used to retrieve the highest weight documents using a inverse index. 
 Alternatively, the term weights can be used in heuristic algorithms e.g. page-rank or term weights can be used in features in downstream ranking models.  
-
-### Evaluation
-
-I'll fill this in later, if I have a free weekend \<.\< \>.\>
-
 
 ### Conclusions
 
@@ -110,8 +105,8 @@ We can envision a future where industry can open the gates to academia and share
 
 However, that future is unlikely to happen. 
 Search hasn't been this competitive since the 2000s, with startups, you.com, perplexity.ai and more
-creating LLM first search engines, and chatGPT threatening to change user knowledge searching behavior away from search as a whole [10][11][12].
-Google's global search market share has dropped to below 90% for the first time since 2015 [13].
+creating LLM first search engines, and chatGPT threatening to change user knowledge searching behavior away from search as a whole [9][10][11].
+Google's global search market share has dropped to below 90% for the first time since 2015 [12].
 
 Algorithms have never been the strongest competitive moat.
 Especially with the Silcon Valley exodus of 2023, shuffling employees between tech giants
@@ -128,15 +123,11 @@ or ejecting them into new markets across the world [4].
 
 [4] Bruh just trust me
 
-[5] https://github.com/yoshi-code-bot/elixir-google-api/commit/d7a637f4391b2174a2cf43ee11e6577a204a161e
+[5] Cañamares, Rocío & Castells, Pablo. (2018). Should I Follow the Crowd?: A Probabilistic Analysis of the Effectiveness of Popularity in Recommender Systems. 415-424. 10.1145/3209978.3210014. 
 
-[5] Jones, Karen. (2021). A Statistical Interpretation of Term Specificity and Its Application in Retrieval (1972). 10.7551/mitpress/12274.003.0037. 
+[6] Delgado, J., & Greyson, P. (2024, March 27). From structured search to learning-to-rank-and-retrieve. Amazon Science. https://www.amazon.science/blog/from-structured-search-to-learning-to-rank-and-retrieve 
 
-[6] Cañamares, Rocío & Castells, Pablo. (2018). Should I Follow the Crowd?: A Probabilistic Analysis of the Effectiveness of Popularity in Recommender Systems. 415-424. 10.1145/3209978.3210014. 
-
-[7] Delgado, J., & Greyson, P. (2024, March 27). From structured search to learning-to-rank-and-retrieve. Amazon Science. https://www.amazon.science/blog/from-structured-search-to-learning-to-rank-and-retrieve 
-
-[8] Miller, R. B. (1968). Response time in man-computer conversational transactions. Proc. AFIPS Fall Joint Computer Conference Vol. 33, 267-277.
+[7] Miller, R. B. (1968). Response time in man-computer conversational transactions. Proc. AFIPS Fall Joint Computer Conference Vol. 33, 267-277.
 
 [9] Brutlag, Jake & Hutchinson, Hilary & Google, Maria & Inc,. User Preference and Search Engine Latency. 
 
@@ -144,8 +135,4 @@ or ejecting them into new markets across the world [4].
 
 [11] https://www.perplexity.ai/
 
-[12] Capra, R., & Arguello, J. (2023). How does AI chat change search behaviors?. arXiv preprint arXiv:2307.03826.
-
-[13] Goodwin, D. (2025, January 20). Google’s search market share drops below 90% for first time since 2015. Search Engine Land. https://searchengineland.com/google-search-market-share-drops-2024-450497
-
-[14]
+[12] Goodwin, D. (2025, January 20). Google’s search market share drops below 90% for first time since 2015. Search Engine Land. https://searchengineland.com/google-search-market-share-drops-2024-450497

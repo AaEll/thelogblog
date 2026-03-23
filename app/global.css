@@ -1,36 +1,37 @@
 @import 'tailwindcss';
 
-::selection {
-  background-color: #47a3f3;
-  color: #fefefe;
-}
-
 :root {
-  --sh-class: #2d5e9d;
-  --sh-identifier: #354150;
-  --sh-sign: #8996a3;
-  --sh-string: #007f7a;
-  --sh-keyword: #e02518;
-  --sh-comment: #a19595;
-  --sh-jsxliterals: #6266d1;
-  --sh-property: #e25a1c;
-  --sh-entity: #e25a1c;
-}
+  --terminal-bg: #0a0a0a;
+  --terminal-text: #33ff33;
+  --terminal-dim: #1f7a2a;
+  --terminal-muted: #2a5a2a;
+  --terminal-bright: #7fff7f;
+  --terminal-link: #00ffff;
+  --terminal-code-bg: #050505;
+  --terminal-border: #1a3a1a;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --sh-class: #4c97f8;
-    --sh-identifier: white;
-    --sh-keyword: #f47067;
-    --sh-string: #0fa295;
-  }
-  html {
-    color-scheme: dark;
-  }
+  /* syntax highlighting — terminal palette */
+  --sh-class: #7fff7f;
+  --sh-identifier: #33ff33;
+  --sh-sign: #1f7a2a;
+  --sh-string: #00ffcc;
+  --sh-keyword: #00ffff;
+  --sh-comment: #2a5a2a;
+  --sh-jsxliterals: #99ff99;
+  --sh-property: #aaff44;
+  --sh-entity: #aaff44;
 }
 
 html {
   min-width: 360px;
+  background-color: var(--terminal-bg);
+  color: var(--terminal-text);
+  color-scheme: dark;
+}
+
+::selection {
+  background-color: #33ff33;
+  color: #0a0a0a;
 }
 
 .prose .anchor {
@@ -48,11 +49,19 @@ html {
 }
 
 .prose a {
-  @apply underline transition-all decoration-neutral-400 dark:decoration-neutral-600 underline-offset-2 decoration-[0.1em];
+  color: var(--terminal-link);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-color: color-mix(in srgb, var(--terminal-link) 40%, transparent);
+  transition: text-decoration-color 0.15s;
+}
+
+.prose a:hover {
+  text-decoration-color: var(--terminal-link);
 }
 
 .prose .anchor:after {
-  @apply text-neutral-300 dark:text-neutral-700;
+  color: var(--terminal-muted);
   content: '#';
 }
 
@@ -61,7 +70,9 @@ html {
 }
 
 .prose pre {
-  @apply bg-neutral-50 dark:bg-neutral-900 rounded-lg overflow-x-auto border border-neutral-200 dark:border-neutral-900 py-2 px-3 text-sm;
+  background-color: var(--terminal-code-bg);
+  border: 1px solid var(--terminal-border);
+  @apply rounded-lg overflow-x-auto py-2 px-3 text-sm;
 }
 
 .prose code {
@@ -79,32 +90,37 @@ html {
 }
 
 .prose img {
-  /* Don't apply styles to next/image */
   @apply m-0;
 }
 
 .prose p {
-  @apply my-4 text-neutral-800 dark:text-neutral-200;
+  @apply my-4;
+  color: var(--terminal-text);
 }
 
 .prose h1 {
   @apply text-4xl font-medium tracking-tight mt-6 mb-2;
+  color: var(--terminal-bright);
 }
 
 .prose h2 {
   @apply text-xl font-medium tracking-tight mt-6 mb-2;
+  color: var(--terminal-bright);
 }
 
 .prose h3 {
   @apply text-xl font-medium tracking-tight mt-6 mb-2;
+  color: var(--terminal-bright);
 }
 
 .prose h4 {
   @apply text-lg font-medium tracking-tight mt-6 mb-2;
+  color: var(--terminal-bright);
 }
 
 .prose strong {
   @apply font-medium;
+  color: var(--terminal-bright);
 }
 
 .prose ul {
@@ -116,7 +132,6 @@ html {
 }
 
 .prose > :first-child {
-  /* Override removing top margin, causing layout shift */
   margin-top: 1.25em !important;
   margin-bottom: 1.25em !important;
 }
@@ -126,11 +141,10 @@ pre::-webkit-scrollbar {
 }
 
 pre {
-  -ms-overflow-style: none; /* IE and Edge */
-  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
-/* Remove Safari input shadow on mobile */
 input[type='text'],
 input[type='email'] {
   -webkit-appearance: none;
@@ -147,4 +161,5 @@ table {
 
 .title {
   text-wrap: balance;
+  color: var(--terminal-bright);
 }

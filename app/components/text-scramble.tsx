@@ -88,7 +88,7 @@ export function TextScramble() {
         }
       }
 
-      for (const entry of dirty) flush(entry)
+      Array.from(dirty).forEach(flush)
     }
 
     const spawnWave = () => waves.push({ pos: 0 })

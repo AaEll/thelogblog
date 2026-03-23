@@ -137,11 +137,13 @@ This architecture is also relevant for LLM applications, where RAG pipelines are
 of the established state-of-the-art architecture for search and recommendations.
 
 Within the *retrieval* layer, we need to *'retrieve'* a high-recall set of up to several thousand items from a pool of 
-hundreds of millions to trillions of items. While there are some applications of deep learning in retrieval, large neural networks
-are not scalable to evaluating hundreds of millions of items within the 250ms users expect from search and recommendations applications [7][8].
-
-Typically, retrieval is achieved by combining a variety of heuristics, collaborative filtering, and dense vector search that can scale 
-to webscale problems [4][6]. Salient terms fits neatly into the retrieval layer as another performant heuristic algorithm for modelling query\<\-\>item relevance.
+hundreds of millions to trillions of items, within the 250ms users expect from search and recommendations applications [7][8].
+Typically, retrieval is achieved by combining a variety of heuristics, collaborative filtering, and dense vector-retrieval that can scale 
+to webscale problems [4][6].
+In this stage, we cannot individually evaluate every item, and can only leverage more scalable algorithms.
+The primary deep learning based algorithm being dense-vector-retrieval. However, even here dense-vector-retrieval
+typically isn't the highest performing retrieval algorithm [4].
+Salient terms fits neatly into the retrieval layer as another performant heuristic algorithm for modelling query\<\-\>item relevance.
 
 Salient terms can be used to retrieve the highest weighted documents via an inverted index.
 Term weights can also feed into heuristic algorithms (e.g. PageRank) or serve as features in downstream ranking models.
@@ -176,10 +178,12 @@ or sending them into new markets across the world [4].
 
 [7] Miller, R. B. (1968). Response time in man-computer conversational transactions. Proc. AFIPS Fall Joint Computer Conference Vol. 33, 267-277.
 
-[9] Brutlag, Jake & Hutchinson, Hilary & Google, Maria & Inc,. User Preference and Search Engine Latency. 
+[8] Brutlag, Jake & Hutchinson, Hilary & Google, Maria & Inc,. User Preference and Search Engine Latency.
 
-[10] https://you.com/
+[9] https://you.com/
 
-[11] https://www.perplexity.ai/
+[10] https://www.perplexity.ai/
+
+[11] https://openai.com/chatgpt
 
 [12] Goodwin, D. (2025, January 20). Google’s search market share drops below 90% for first time since 2015. Search Engine Land. https://searchengineland.com/google-search-market-share-drops-2024-450497

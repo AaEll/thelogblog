@@ -1,0 +1,96 @@
+---
+title: 'Bridging the Gap from Classical ML to Transformers, Part 0'
+publishedAt: '2026-03-23'
+summary: 'A guide to the modern MLE interview landscape — what companies are actually testing, how LLM implementation questions have reshaped the format, and what this series will prepare you for.'
+---
+
+If you trained on classical machine learning — gradient boosted trees, SVMs, feature engineering pipelines, the occasional foray into convolutional nets — the modern MLE interview circuit can feel like a moving target.
+The fundamentals haven't gone away, but a new layer has settled on top: companies increasingly expect candidates to reason about, and implement, components of large language models from scratch.
+
+This series is a bridge for modern ML practitioners helping you fill the transformer gap in your knowledge. This article is derived from my own self-study preparing for interviews,
+where I discovered many transformer concepts are much easier to understand when framed in the context of fundamental concepts from classical ML.
+
+Machine learning engineering roles span a wide range of skillsets, and the interview process reflects that.
+A perfect MLE is sometimes related to a unicorn, where none truly exists that (except potentially Andrej Karpathy).
+We are expected to know all of classical ml, up-to-date knowledge on recent NLP research, the core quality iteration process,
+core software-engineering skills, deployment strategies, ML systems design, distributed training expertise,
+data expertise, product expertise, agent expertise, ect. it can feel overwhelming.
+
+In this multi-part article, I will try to cover these subjects in enough depth to meaningfully assist in your interviews,
+while not going into unnecessary depth to waste your time.
+
+We'll start from concepts you likely already know and build toward the transformer architecture, and practical knowledge for distributed training. Part 0 is a map of the terrain: what the interview process actually looks like today, where LLM implementation fits in, and what we'll cover in subsequent posts.
+
+---
+
+## The Modern ML Engineer Interview
+
+
+###  ML Theory / Concepets Round
+
+This is where the classical ML foundation matters. Expect questions like:
+
+- Walk me through how gradient boosting works. How does it differ from random forests?
+- What is the bias-variance tradeoff? How does regularization affect it?
+- Why do we use cross-entropy loss for classification instead of MSE?
+- What are the assumptions behind logistic regression?
+- Explain dropout — what problem does it solve, and what does it do at inference?
+
+At companies building on top of foundation models, this round has started blending classical and modern theory. You might be asked to compare batch normalization and layer normalization, or to explain why transformers use layer norm instead of batch norm.
+
+### 4. ML System Design
+
+A 45–60 minute open-ended design problem. Common prompts include:
+
+- Design a search ranking system for an e-commerce platform.
+- Design a recommendation system for a short-form video feed.
+- Design a content moderation pipeline.
+- Design a system that detects anomalies in time-series sensor data.
+
+At AI-focused companies, the prompt is increasingly likely to involve an LLM in some capacity: "Design a retrieval-augmented generation system for our support chatbot" or "Design a fine-tuning pipeline for adapting a foundation model to our domain."
+
+### 5. ML Implementation / Coding from Scratch
+
+This is the round that has changed most dramatically in the last two years. Rather than — or in addition to — asking you to implement a logistic regression or k-means from scratch, interviewers are now asking candidates to implement components of the transformer architecture.
+
+Common asks:
+
+- Implement scaled dot-product attention in NumPy or PyTorch.
+- Implement multi-head attention.
+- Implement sinusoidal positional encodings.
+- Write a simple autoregressive sampling loop.
+- Implement a basic key-value cache for inference.
+- Explain and implement layer normalization.
+
+The expectation isn't that you'll produce production-quality code in 45 minutes. The expectation is that you can reason about *why* each piece exists, handle the tensor shapes correctly, and talk through tradeoffs as you code.
+
+### 6. Behavioral / Leadership Round
+
+Standard STAR-format questions. Teams that operate fast and deal with ambiguity want to understand how you navigate unclear problem definitions, production incidents, and cross-functional collaboration.
+
+---
+
+## Why LLM Implementation Has Entered the Interview
+
+The shift isn't arbitrary. Language models have become infrastructure. At companies building AI products — and increasingly at companies where AI is a component of a larger product — MLEs are expected to work directly with transformer-based systems. That means debugging training instabilities, reasoning about memory consumption during fine-tuning, understanding what a KV cache is and when it helps, and reading architecture papers well enough to adapt them.
+
+The interview is catching up to the job.
+
+There's also a signal-quality argument. Classical ML implementation questions (k-means, PCA, linear regression) have been so thoroughly covered by prep resources that they've become pattern-matching exercises. Transformer component implementation is harder to grind without genuine understanding. A candidate who can implement multi-head attention from scratch and explain why the keys, queries, and values are projected separately almost certainly understands attention — not just a memorized recipe.
+
+---
+
+## What This Series Covers
+
+This is Part 0. The subsequent posts will build a working transformer from the ground up, explaining each decision in terms of the classical ML intuitions you already have. The rough roadmap:
+
+- **Part 1**: The attention mechanism — from similarity search to softmax-weighted retrieval
+- **Part 2**: Positional encodings — why sequence order isn't free, and how to inject it
+- **Part 3**: Multi-head attention and the transformer block
+- **Part 4**: Training considerations — layer norm, residual connections, and why they matter
+- **Part 5**: Autoregressive decoding and KV caching
+- **Part 6**: Putting it together — a minimal GPT in ~200 lines
+
+Each post will include implementation exercises formatted the way interviewers actually ask them, with commentary on what a strong response looks like and where candidates typically stumble.
+
+If you've spent time in classical ML and feel like the transformer revolution happened in a language you don't quite speak yet — this is the series for you.

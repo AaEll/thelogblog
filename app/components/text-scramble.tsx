@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react'
 
-const CHARS = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
+const CHARS = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!.,?[]()_<>'
 const WAVE_WIDTH = 1
 const SPEED = 1 // characters to advance per frame
 const INTERVAL = 1000 / 15 // ~15fps
@@ -78,7 +78,7 @@ export function TextScramble() {
         const waveFront = Math.min(wave.pos, allChars.length - 1)
         for (let i = waveBack; i <= waveFront; i++) {
           const ref = allChars[i]
-          if (!/[a-zA-Z0-9]/.test(ref.original)) continue
+          if (!/[a-zA-Z0-9.,[\]()_<>]/.test(ref.original)) continue
           ref.entry.chars[ref.idx] = randomChar()
           dirty.add(ref.entry)
         }

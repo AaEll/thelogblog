@@ -6,14 +6,14 @@ summary: 'Salient terms, the algorithm academia forgot.'
 
 ## Origins of Salient Terms 
 
-The term 'salient terms' in the information retrieval literature is first referenced in an almost-uncited conference paper from September 2002, 
-*Using Salient Words to Perform Categorization of Web Sites\** [1]. This paper from the same era of information retrieval as page-rank [2], 
-has only received 1 citation as of the writing of this blog post. Later the same year, *Detecting Similar Documents Using Salient Terms* is published
-by Cooper et.al. from the IBM Watson [3].
+The term 'salient terms' in the information retrieval literature is first referenced in an almost-uncited conference paper from September 2002,
+*Using Salient Words to Perform Categorization of Web Sites* [1]. From the same era as PageRank [2], it has received only 1 citation as of the writing of this post. Later the same year, *Detecting Similar Documents Using Salient Terms* was published
+by Cooper et al. from IBM Watson [3].
 
-Despite these humble origins, salient terms has become a widely known set of algorithms within industry [4]. Salient terms has come to represent a variety of term weighting algorithm with the goal of highly weighting terms related to the subject of the document [4].
+Despite these humble origins, salient terms has become a widely known set of algorithms within industry [4].
+Salient terms has come to represent a family of term weighting algorithms with the goal of upweighting terms most central to the subject of a document [4].
 
-For example, this article is a document that references 'salient-terms' as a term, and 'page-rank' as a term. However, if a user was searching for 'page-rank' this document would not be relevant, and page rank is only tertially involved in the article. The key subject of this article and most salient term is 'salient-terms'.
+For example, this article references both 'salient-terms' and 'page-rank'. But if a user searched for 'page-rank' this document would not be relevant — PageRank is only tangentially involved. The key subject, and most salient term, is 'salient-terms'.
 
 
 ### Popularity Salient Terms 
@@ -76,6 +76,54 @@ GROUP BY 2,3
 event_db.read("SELECT * FROM salient_terms_extract WHERE extract_date=<TODAY>")
 .map( record -> key_db.insert(record.term, record.item_id, record.val))
 ```
+### Future Directions for Salient Terms, Salient Embeddings
+
+Salient Terms already has a meaningful overlap with embedding vector search as a retrieval approach —
+both aim to capture the subject of a document and surface it for relevant queries.
+Salient Terms' main weakness is that it treats both query and document as a bag-of-words.
+Its main advantage is that it learns quickly from user feedback.
+
+We can consider an algorithm that combines some of these strengths, and call it Salient Embeddings.
+
+Imagine an internet-scale web search engine. Each website already has an embedding vector produced by some base encoder model, frozen, static, derived from content alone. A user searches for *"best espresso machines under $200"*, clicks a result, and dwells on it. That interaction is a signal: this document was relevant to this query.
+In a traditional setup, you'd log that signal and eventually feed it into a fine-tuning run. This is manual, slow, delayed by days or weeks, and bottlenecked by embedding model capacity.
+
+
+Salient Embeddings proposes something simpler: directly nudge the item's embedding toward the query embedding at interaction time — in some ways a streaming variant of word2vec.
+
+<u>Salient Embeddings Update Rule</u>
+```
+embedding_db // vector store mapping item_id -> embedding vector
+query_embedding // dense vector representation of user's search query
+item_embedding // current embedding of interacted item
+α // learning rate (small, e.g. 0.01)
+
+// when user positively interacts with item for a given query
+item_embedding_new = normalize(item_embedding + α * query_embedding)
+embedding_db.set(item_id, item_embedding_new)
+```
+
+Over many interactions, a document that consistently satisfies queries about espresso machines drifts — in embedding space — closer to that cluster of queries, even if its text never used those exact terms. The encoder weights are untouched; the learned signal lives in the stored vectors themselves. Decay can be applied by periodically blending back toward the original content embedding, analogous to the moving window in Popularity Salient Terms, and negative interactions can push the embedding in the opposite direction.
+
+<u>Salient Embeddings with Decay</u>
+```
+embedding_original // frozen content embedding from base model
+embedding_learned // current learned embedding (initialized to embedding_original)
+α // learning rate
+β // decay rate toward original embedding (applied periodically)
+
+// on positive interaction
+embedding_learned = normalize(embedding_learned + α * query_embedding)
+
+// on periodic decay step (e.g., daily)
+embedding_learned = normalize((1 - β) * embedding_learned + β * embedding_original)
+```
+
+The tradeoffs are real. This isn't far from what contrastive fine-tuning already does — the difference is that fine-tuning updates the encoder weights globally, while this updates individual item vectors locally. The local approach is cheaper and more immediate, but the learned signal doesn't generalize the same way: a nudge toward *"espresso machines under $200"* doesn't automatically help for *"affordable coffee gear"* unless those query embeddings are already nearby in the base space.
+To satisfy more complex or multi-topic search-intents, shifting an item's embedding towards one query may not positively impact performance for every query. Further, the topic for 'head' queries will dominate the embeddings, starving 'tail' queries for relevant results.
+
+The operational cost is also non-trivial: embeddings are no longer static artifacts derivable from content. They become stateful, per-item, and potentially require back-ups for the scale your index operates.
+
 ### How Salient Terms Fits into the Ranking/Recommendations Stack
 
 In the age of deep learning, why do we still use such simple algorithms? If you're asking this question,
@@ -93,24 +141,21 @@ are not scalable to evaluating hundreds of millions of items within the 250ms us
 Typically, retrieval is achieved by combining a variety of heuristics, collaborative filtering, and dense vector search that can scale 
 to webscale problems [4][6]. Salient terms fits neatly into the retrieval layer as another performant heuristic algorithm for modelling query\<\-\>item relevance.
 
-Salient terms can be used to retrieve the highest weight documents using a inverse index. 
-Alternatively, the term weights can be used in heuristic algorithms e.g. page-rank or term weights can be used in features in downstream ranking models.  
+Salient terms can be used to retrieve the highest weighted documents via an inverted index.
+Term weights can also feed into heuristic algorithms (e.g. PageRank) or serve as features in downstream ranking models.
 
 ### Conclusions
 
-It's an unfortunate reality the field of information retrieval has diverged between academia and industry. 
-With the greatest information retrieval research and innovation hidden behind the gilded walls of Silicon Valley giants.
+It's an unfortunate reality that information retrieval has diverged between academia and industry,
+with the most significant research and innovation hidden behind the walls of a handful of Silicon Valley companies.
 
-We can envision a future where industry can open the gates to academia and share decades of experimentation and research. 
-
-However, that future is unlikely to happen. 
-Search hasn't been this competitive since the 2000s, with startups, you.com, perplexity.ai and more
-creating LLM first search engines, and chatGPT threatening to change user knowledge searching behavior away from search as a whole [9][10][11].
+That gap is unlikely to close.
+Search hasn't been this competitive since the 2000s, with startups like you.com and Perplexity building LLM-first search engines, and ChatGPT shifting how users seek information away from search altogether [9][10][11].
 Google's global search market share has dropped to below 90% for the first time since 2015 [12].
 
 Algorithms have never been the strongest competitive moat.
-Especially with the Silcon Valley exodus of 2023, shuffling employees between tech giants
-or ejecting them into new markets across the world [4].
+Especially with the Silicon Valley exodus of 2023, shuffling employees between tech giants
+or sending them into new markets across the world [4].
 
 
 ## Bibliography

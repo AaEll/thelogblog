@@ -55,11 +55,12 @@ This round has historically focussed on classical ML, for example questions like
 - What are the assumptions behind logistic regression?
 - Explain dropout — what problem does it solve, and what does it do at inference?
 
-However, more recently this round has began to place more emphasis on Transformer concepts. The round has started blending classical and modern theory. Example questions include:
+However, more recently this round has began to place more emphasis on Transformer concepts. Example questions include:
 
-- When would you use data-parallel vs pipeline-parallel training for a LLM? What factors lead to the decision?
+- When would you use data-parallel vs pipeline-parallel distributed training for a LLM? What factors lead to the decision?
 - Explain the tradeoffs between RoPE and sinusoidal positional embeddings. When would you prefer one over the other?
-- Compare the tradeoffs between scaled dot-product attention, multi-head attention, latent attention and grouped-query attention. Why has Latent Attention & Grouped Query Attention become common in modern LLMs?
+- Compare the tradeoffs between scaled dot-product attention, multi-head attention, latent attention and grouped-query attention.
+Why has Latent Attention & Grouped Query Attention become common in modern open source LLMs?
 - You might be asked to compare batch normalization and layer normalization, and to explain why transformers use layer norm instead of batch norm.
 
 ### 4. ML System Design
@@ -71,12 +72,14 @@ A 45–60 minute open-ended design problem. Common prompts include:
 - Design a content moderation pipeline.
 - Design a system that detects anomalies in time-series sensor data.
 
-At AI-focused companies, the prompt is increasingly likely to involve an LLM in some capacity: "Design a retrieval-augmented generation system for our support chatbot" or
+At LLM-focused companies, the prompt is increasingly likely to involve an LLM in some capacity:
+"Design an inference API for serving large language models. Variable-length requests, GPU memory management across concurrent requests, request queuing with priority, streaming responses" or
 "Design a fine-tuning pipeline for adapting a foundation model to our domain."
 
 ### 5. ML Implementation / Coding from Scratch
 
-This is the round that has changed most dramatically in the last two years. Rather than — or in addition to — asking you to implement a logistic regression or k-means from scratch, interviewers are now asking candidates to implement components of the transformer architecture.
+This is the round that has changed most dramatically in the last two years.
+Rather than — or in addition to — asking you to implement a logistic regression or k-means from scratch, interviewers are now asking candidates to implement components of the transformer architecture.
 
 Common asks:
 
@@ -87,7 +90,8 @@ Common asks:
 - Implement a basic key-value cache for inference.
 - Explain and implement layer normalization.
 
-The expectation isn't that you'll produce production-quality code in 45 minutes. The expectation is that you can reason about *why* each piece exists, handle the tensor shapes correctly, and talk through tradeoffs as you code.
+The expectation isn't that you'll produce production-quality code in 45 minutes.
+The expectation is that you can reason about *why* each piece exists, handle the tensor shapes correctly, and talk through tradeoffs as you code.
 
 ---
 

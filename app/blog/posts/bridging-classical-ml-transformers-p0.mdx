@@ -1,26 +1,42 @@
 ---
-title: 'Bridging the Gap from Classical ML to Transformers, Part 0'
+title: 'Bridging the Gap from Classical ML to Transformers, Part 0 - '
 publishedAt: '2026-03-23'
 summary: 'A guide to the modern MLE interview landscape — what companies are actually testing, how LLM implementation questions have reshaped the format, and what this series will prepare you for.'
 ---
 
-If you trained on classical machine learning — gradient boosted trees, SVMs, feature engineering pipelines, the occasional foray into convolutional nets — the modern MLE interview circuit can feel like a moving target.
-The fundamentals haven't gone away, but a new layer has settled on top: companies increasingly expect candidates to reason about, and implement, components of large language models from scratch.
+For classical ML practitioners, gradient boosted trees, SVMs, feature engineering pipelines,
+the modern MLE interview circuit can feel like a moving target. The fundamentals haven't gone away,
+but a new layer has settled on top: big tech companies increasingly expect candidates to reason about,
+and implement, components of large language models from scratch.
 
-This series is a bridge for modern ML practitioners helping you fill the transformer gap in your knowledge. This article is derived from my own self-study preparing for interviews,
-where I discovered many transformer concepts are much easier to understand when framed in the context of fundamental concepts from classical ML.
+This series is a bridge for modern ML practitioners helping you fill the transformer gap in your knowledge.
+This article is derived from my own self-study preparing for interviews, where I discovered many transformer concepts
+are much easier to understand when framed in the context of fundamental concepts from classical ML.
 
 Machine learning engineering roles span a wide range of skillsets, and the interview process reflects that.
 A perfect MLE is sometimes related to a unicorn, where none truly exists that (except potentially Andrej Karpathy).
-We are expected to know all of classical ml, up-to-date knowledge on recent NLP research, the core quality iteration process,
-core software-engineering skills, deployment strategies, ML systems design, distributed training expertise,
-data expertise, product expertise, agent expertise, ect. it can feel overwhelming.
+We are expected to know all of classical ml, up-to-date knowledge on the evolving LLM transformer architecture,
+deployment strategies, ML systems design, distributed training expertise,
+data expertise, product expertise, agent expertise, ect. in addition to the most relevant skills to the job
+understanding the core quality iteration process, core software-engineering skills; it can feel overwhelming.
 
 In this multi-part article, I will try to cover these subjects in enough depth to meaningfully assist in your interviews,
-while not going into unnecessary depth to waste your time.
+placing transformer concepts in context of classical ML concepts.
 
-We'll start from concepts you likely already know and build toward the transformer architecture, and practical knowledge for distributed training. Part 0 is a map of the terrain: what the interview process actually looks like today, where LLM implementation fits in, and what we'll cover in subsequent posts.
+In this part 0, we will map the terrain: what the interview process actually looks like today, where LLM implementation fits in,
+and what we'll cover in subsequent posts.
 
+---
+Part 0. Overview
+Part 1. Attention & Positional Embeddings
+Part 2. Transformer Block , Encoder & Decoder
+Part 3. Deep dive into Components  - AdamW & the Training Loop 
+Part 4. Deep learning fundamentals - AdamW & the Training Loop 
+
+Appendex
+Part A.1 - Distributed Pre-Training & Identifying Bottlenecks in Distributed Systems
+Part A.2 - RL-Fine-Tuning 
+Part A.3 - Post-Training and Fine-tuning
 ---
 
 ## The Modern ML Engineer Interview
@@ -28,7 +44,7 @@ We'll start from concepts you likely already know and build toward the transform
 
 ###  ML Theory / Concepets Round
 
-This is where the classical ML foundation matters. Expect questions like:
+This round has historically focussed on classical ML, for example questions like:
 
 - Walk me through how gradient boosting works. How does it differ from random forests?
 - What is the bias-variance tradeoff? How does regularization affect it?
@@ -36,7 +52,12 @@ This is where the classical ML foundation matters. Expect questions like:
 - What are the assumptions behind logistic regression?
 - Explain dropout — what problem does it solve, and what does it do at inference?
 
-At companies building on top of foundation models, this round has started blending classical and modern theory. You might be asked to compare batch normalization and layer normalization, or to explain why transformers use layer norm instead of batch norm.
+However, more recently this round has began to place more emphasis on Transformer concepts. The round has started blending classical and modern theory. Example questions include:
+
+- When would you use data-parallel vs pipeline-parallel training for a LLM? What factors lead to the decision?
+- Explain the tradeoffs between RoPE and sinusoidal positional embeddings. When would you prefer one over the other?
+- Compare the tradeoffs between scaled dot-product attention, multi-head attention, latent attention and grouped-query attention. Why has Latent Attention & Grouped Query Attention become common in modern LLMs?
+- You might be asked to compare batch normalization and layer normalization, and to explain why transformers use layer norm instead of batch norm.
 
 ### 4. ML System Design
 
@@ -47,7 +68,8 @@ A 45–60 minute open-ended design problem. Common prompts include:
 - Design a content moderation pipeline.
 - Design a system that detects anomalies in time-series sensor data.
 
-At AI-focused companies, the prompt is increasingly likely to involve an LLM in some capacity: "Design a retrieval-augmented generation system for our support chatbot" or "Design a fine-tuning pipeline for adapting a foundation model to our domain."
+At AI-focused companies, the prompt is increasingly likely to involve an LLM in some capacity: "Design a retrieval-augmented generation system for our support chatbot" or
+"Design a fine-tuning pipeline for adapting a foundation model to our domain."
 
 ### 5. ML Implementation / Coding from Scratch
 
@@ -63,10 +85,6 @@ Common asks:
 - Explain and implement layer normalization.
 
 The expectation isn't that you'll produce production-quality code in 45 minutes. The expectation is that you can reason about *why* each piece exists, handle the tensor shapes correctly, and talk through tradeoffs as you code.
-
-### 6. Behavioral / Leadership Round
-
-Standard STAR-format questions. Teams that operate fast and deal with ambiguity want to understand how you navigate unclear problem definitions, production incidents, and cross-functional collaboration.
 
 ---
 

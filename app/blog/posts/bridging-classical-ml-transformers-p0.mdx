@@ -26,11 +26,11 @@ placing transformer concepts in context of classical ML concepts.
 In this part 0, we will map the terrain: what the interview process actually looks like today, where LLM implementation fits in,
 and what we'll cover in subsequent posts.
 
-
+## Overview of Topics Covered
 ---
-Part 0. Overview
-Part 1. Attention & Positional Embeddings
-Part 2. Transformer Block , Encoder & Decoder
+Part 0. Overview & MLE Interview Format
+Part 1. Attention, KV caching & Positional Embeddings
+Part 2. Transformer Block - Encoder, Decoder, Layer Norm, & Residual Connections
 Part 3. Deep learning fundamentals - AdamW, & Training Stability
 Part 4. Deep learning fundamentals - Self-Supervision, Cross Entropy & the Training Loop 
 Part 5. PyTorch fundamentals - Implementing every Transformer component from scratch 
@@ -97,25 +97,13 @@ The expectation is that you can reason about *why* each piece exists, handle the
 
 ## Why LLM Implementation Has Entered the Interview
 
-The shift isn't arbitrary. Language models have become infrastructure. At companies building AI products — and increasingly at companies where AI is a component of a larger product — MLEs are expected to work directly with transformer-based systems. That means debugging training instabilities, reasoning about memory consumption during fine-tuning, understanding what a KV cache is and when it helps, and reading architecture papers well enough to adapt them.
+The shift isn't arbitrary. Language models have revolutionized the software industry, and the few companies training foundational models have a strong reason to want experts in transformers.
+More widely, at companies building AI products — and increasingly at companies where AI is a component of a larger product — MLEs are expected to work directly with transformer-based systems.
+
+That means debugging training instabilities, reasoning about memory consumption during fine-tuning, understanding what a KV cache is and when it helps, and reading architecture papers well enough to adapt them.
 
 The interview is catching up to the job.
 
 There's also a signal-quality argument. Classical ML implementation questions (k-means, PCA, linear regression) have been so thoroughly covered by prep resources that they've become pattern-matching exercises. Transformer component implementation is harder to grind without genuine understanding. A candidate who can implement multi-head attention from scratch and explain why the keys, queries, and values are projected separately almost certainly understands attention — not just a memorized recipe.
 
 ---
-
-## What This Series Covers
-
-This is Part 0. The subsequent posts will build a working transformer from the ground up, explaining each decision in terms of the classical ML intuitions you already have. The rough roadmap:
-
-- **Part 1**: The attention mechanism — from similarity search to softmax-weighted retrieval
-- **Part 2**: Positional encodings — why sequence order isn't free, and how to inject it
-- **Part 3**: Multi-head attention and the transformer block
-- **Part 4**: Training considerations — layer norm, residual connections, and why they matter
-- **Part 5**: Autoregressive decoding and KV caching
-- **Part 6**: Putting it together — a minimal GPT in ~200 lines
-
-Each post will include implementation exercises formatted the way interviewers actually ask them, with commentary on what a strong response looks like and where candidates typically stumble.
-
-If you've spent time in classical ML and feel like the transformer revolution happened in a language you don't quite speak yet — this is the series for you.

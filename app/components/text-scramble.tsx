@@ -93,16 +93,12 @@ export function TextScramble() {
 
     const spawnWave = () => waves.push({ pos: 0 })
 
-    // First wave after 2s, then one every 15s
-    const initialTimeout = setTimeout(() => {
-      spawnWave()
-      animId = requestAnimationFrame(step)
-    }, 2000)
+    spawnWave()
+    animId = requestAnimationFrame(step)
 
     const spawnInterval = setInterval(spawnWave, SPAWN_MS)
 
     return () => {
-      clearTimeout(initialTimeout)
       clearInterval(spawnInterval)
       cancelAnimationFrame(animId)
       restoreAll()

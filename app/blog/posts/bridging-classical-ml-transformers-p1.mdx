@@ -153,101 +153,54 @@ class CustomAdamW(torch.optim.Optimizer):
 
 ---
 
-## What SGD Gets Wrong for Deep Networks
+## Training Stability
 
-Stochastic gradient descent with momentum works well for convex problems and shallower networks.
-For deep networks — and transformers in particular — it has two structural weaknesses.
+Even with a perfect optimizer, deep networks are prone to training instability. The root cause is structural: gradients are computed via the chain rule, meaning the gradient at an early layer is the product of Jacobians from every layer above it. With `L` layers, that's roughly `L` matrix multiplications chained together. If the typical singular value of those Jacobians is less than 1, the product shrinks exponentially with depth — the gradient **vanishes**. If greater than 1, it grows exponentially — the gradient **explodes**.
 
-**Different parameters need different learning rates.** In a transformer, some parameters receive dense, large gradients throughout training (e.g., early embedding layers). Others receive sparse or small gradients (e.g., attention projections in later layers that specialize gradually). A single global learning rate is too large for the former and too small for the latter.
+In a transformer with 32–96 layers, small systematic biases in those Jacobians compound dramatically. The earliest layers receive a gradient signal that has passed through dozens of weight matrices and activations, and it arrives near-zero or near-infinity.
 
-**Gradient magnitudes vary wildly across layers.** Even with careful initialization, the gradient norms across layers of a deep network span orders of magnitude. SGD applies the same learning rate everywhere; a step size that's appropriate for one layer is catastrophic for another.
+**Vanishing gradients** cause early layers to stop learning. Their parameters barely move because the loss signal is too attenuated by the time it arrives. This shows up as loss plateauing early, with later layers improving while earlier ones stagnate.
 
-These problems compound as networks get deeper. Transformers with dozens of layers, trained on vast data, make both issues acute.
+**Exploding gradients** cause large destabilizing parameter updates. A single outlier batch can produce a spike in gradient norms that corrupts the optimizer's moment estimates, leading to an outsized step, which can cause another spike. At scale these cascade into divergence.
 
----
+### Recognizing Instability in Practice
 
-## Adam: Per-Parameter Adaptive Learning Rates
+Training instability has a few recognizable signatures in the loss curve:
 
-Adam (Adaptive Moment Estimation) addresses both problems by maintaining running statistics for each parameter and using them to normalize the gradient before taking a step.
+**Loss spikes** — a sudden jump followed by partial recovery — usually indicate an outlier batch or a learning rate that's briefly too high. The danger is cascading: a spike corrupts `v` and `s`, which scales up subsequent steps.
 
-For each parameter `θ`, Adam tracks:
-- `m`: a running estimate of the first moment (mean) of the gradient
-- `v`: a running estimate of the second moment (uncentered variance) of the gradient squared
+**Loss divergence** — monotonically increasing loss with no recovery — typically means the learning rate is too high, warmup is misconfigured, or exploding gradients are propagating NaN/Inf values through the network.
 
-At each step `t` with gradient `g`:
+**Early plateau** — loss stops improving long before convergence — usually means the learning rate is too low, weight decay is too aggressive, or vanishing gradients are starving the early layers of signal.
 
-```python
-m = beta1 * m + (1 - beta1) * g          # momentum term
-v = beta2 * v + (1 - beta2) * g**2       # RMS term
-
-m_hat = m / (1 - beta1**t)               # bias correction
-v_hat = v / (1 - beta2**t)               # bias correction
-
-theta = theta - lr * m_hat / (sqrt(v_hat) + eps)
-```
-
-The `sqrt(v_hat)` denominator is the key: it scales the effective learning rate by the inverse of the gradient's root-mean-square. Parameters with consistently large gradients get smaller effective steps; parameters with small or infrequent gradients get larger effective steps.
-
-This is the per-parameter adaptive learning rate. It's why Adam converges quickly on deep networks where SGD either diverges or creeps.
-
-**Beta defaults.** The standard defaults are `beta1=0.9`, `beta2=0.999`, `eps=1e-8`. In practice:
-- `beta1` controls how much momentum smooths the gradient direction
-- `beta2` controls how quickly the variance estimate adapts — 0.999 means it's very slow to forget past gradient magnitudes
-- `eps` prevents division by zero and has a small effect on very small gradients
-
+**Noisy but trending** — generally fine. This is normal stochastic behavior, especially with small batch sizes or high dropout. Gradient accumulation reduces variance if it's excessive.
 
 ---
 
-## Weight Decay: What It Means in Adam vs SGD
+## Where AdamW Helps
 
-In classical L2 regularization, you add a penalty term `lambda * ||theta||^2` to the loss. Taking its gradient and incorporating it into gradient descent gives:
+AdamW addresses several dimensions of training instability, though not all of them.
 
-```
-theta = theta - lr * (grad_loss + lambda * theta)
-       = (1 - lr * lambda) * theta - lr * grad_loss
-```
+The adaptive denominator `sqrt(s_hat)` directly mitigates **gradient scale variance across layers**. Parameters receiving consistently large gradients get smaller effective steps; parameters with historically small gradients get larger ones. This prevents the loudest layers from overwriting the signal in quieter layers — a problem SGD handles poorly with a single global learning rate.
 
-The `(1 - lr * lambda)` factor shrinks the parameter each step — hence "weight decay."
+The momentum term `v` smooths the update direction across steps, damping **oscillation** in noisy gradient directions while accelerating movement along consistent ones.
 
-The problem with naively applying L2 regularization inside Adam is that the regularization gradient `lambda * theta` gets *adapted* by the same `v` denominator that adapts the loss gradient. Parameters with large gradient histories get less regularization; parameters with small gradient histories get more. The regularization strength becomes entangled with the gradient scale, which means you lose direct control over it.
+Decoupled weight decay ensures **regularization pressure is uniform** across all parameters regardless of gradient history. With coupled Adam+L2, parameters receiving large gradients got less regularization — an unintended interaction that could allow weights in active layers to grow unchecked.
 
-**AdamW** decouples weight decay from the gradient update entirely. The weight decay is applied directly to the parameters, independent of the adaptive term:
+## Where AdamW Falls Short
 
-```python
-# Adam with L2 regularization (coupled — don't do this)
-g = grad_loss + lambda * theta
-# ... then adaptive update on g
+AdamW does not fix vanishing or exploding gradients at the source. The adaptive denominator normalizes each update by its *own* parameter's gradient history — it cannot compensate for a gradient that has already been multiplied to near-zero or near-infinity before it arrives. That's a structural problem, and it requires structural solutions.
 
-# AdamW (decoupled — correct)
-g = grad_loss
-# ... adaptive update on g
-theta = theta - weight_decay * theta   # applied separately, after adaptive step
-```
-
-In PyTorch:
+**Gradient clipping** is the direct mitigation for exploding gradients. It caps the global gradient norm before the optimizer step, rescaling the entire gradient vector when it exceeds a threshold:
 
 ```python
-optimizer = torch.optim.AdamW(
-    model.parameters(),
-    lr=3e-4,
-    betas=(0.9, 0.999),
-    weight_decay=0.1
-)
+torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+optimizer.step()
 ```
 
-A `weight_decay` of 0.1 is typical for transformer pretraining. Values around 0.01–0.1 are common; too large and the model struggles to retain large weights that are genuinely useful.
+Direction is preserved; only magnitude is bounded. Clipping is reactive — it catches explosions after they occur — but it prevents them from corrupting the optimizer state and cascading. `max_norm=1.0` is the standard default for transformer training.
 
-**Interview shorthand:** Adam with L2 regularization ≠ AdamW. The difference is whether weight decay is applied inside the adaptive step or after it. AdamW gives you predictable regularization strength regardless of gradient history.
-
----
-
-## Learning Rate Schedules
-
-A fixed learning rate is rarely optimal for transformer training. Two schedules appear in essentially every major transformer training run.
-
-### Linear Warmup
-
-At the start of training, the `v` term in Adam (the variance estimate) is initialized to zero and hasn't accumulated meaningful statistics yet. The bias correction partially accounts for this, but early gradient steps can still be noisy and poorly scaled. Starting with a very small learning rate and linearly ramping it up over the first few thousand steps (warmup) avoids large early updates that can destabilize training before the optimizer has calibrated.
+**Learning rate warmup** addresses an instability that AdamW itself introduces. At step 0, `s` is initialized to zero. Even with bias correction, the effective variance estimate is unreliable for the first several hundred steps — producing erratically large adaptive step sizes before the optimizer has calibrated. A linear ramp from zero over the first few thousand steps avoids these early destabilizing updates:
 
 ```python
 def lr_with_warmup(step, warmup_steps, base_lr):
@@ -256,9 +209,7 @@ def lr_with_warmup(step, warmup_steps, base_lr):
     return base_lr
 ```
 
-### Cosine Decay
-
-After warmup, the learning rate is decayed following a cosine curve down to a small fraction of the peak (often 10%):
+**Cosine decay** rounds out the schedule. After warmup, decaying the learning rate along a cosine curve to ~10% of peak lets the model make large exploratory updates early and precise refinements late:
 
 ```python
 import math
@@ -272,47 +223,21 @@ def cosine_lr(step, warmup_steps, total_steps, base_lr, min_lr_fraction=0.1):
     return min_lr + cosine_factor * (base_lr - min_lr)
 ```
 
-The intuition: early training benefits from larger steps to escape poor initializations quickly; late training benefits from smaller steps for precise convergence. Cosine decay provides a smooth transition between the two.
+**Residual connections and layer normalization** are the architectural solutions to vanishing gradients — they operate at the network design level, not the optimizer level. Residuals create a gradient highway that bypasses the multiplicative chain; layer norm keeps activations in a well-scaled range before each sublayer. We'll cover both in detail in Part 4.
 
----
+### The Full Picture
 
-## Recognizing Training Instability
+| Problem | Mechanism |
+|---|---|
+| Gradient scale variance across layers | AdamW adaptive rates |
+| Noisy gradient direction | Momentum |
+| Regularization entangled with gradient scale | AdamW decoupled weight decay |
+| Exploding gradients | Gradient clipping |
+| Adam cold-start instability | Learning rate warmup |
+| Late-training over-stepping | Cosine decay |
+| Vanishing gradients (structural) | Residual connections + layer norm |
 
-Training instability manifests in a few recognizable patterns. Knowing them is useful both for debugging and for interview discussions about training at scale.
-
-**Loss spikes.** A sudden jump in training loss, often followed by partial recovery, usually indicates a single bad batch or a learning rate that's too high. At scale, these can cascade — a spike corrupts the optimizer state (`v` and `s`), which causes another spike. Gradient clipping (discussed below) is the primary defense.
-
-**Loss divergence.** Loss grows monotonically without recovery. Common causes: learning rate too high, missing or misconfigured warmup, exploding gradients from deep residual paths, or numerical issues (NaN/Inf) propagating through the network.
-
-**Loss plateaus early.** Loss stops decreasing well before expected convergence. Common causes: learning rate too low, weight decay too high, or dying neurons/attention heads that no longer contribute gradient signal.
-
-**Loss is noisy but trending.** Usually fine — this is normal stochastic behavior, especially with small batch sizes. If the noise is excessive, gradient accumulation (summing gradients over several micro-batches) reduces variance.
-
-### Gradient Clipping
-
-Gradient clipping caps the global gradient norm before each optimizer step:
-
-```python
-torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
-optimizer.step()
-```
-
-This doesn't prevent large gradients from providing signal — it rescales the entire gradient vector so its norm doesn't exceed `max_norm`. The direction is preserved; only the magnitude is bounded. `max_norm=1.0` is a standard default for transformer training.
-
-Gradient clipping is a near-universal component of transformer training runs. If asked about it in an interview: it's not a hack — it's a deliberate design choice that makes training more robust to outlier batches without discarding gradient information.
-
----
-
-## Putting It Together
-
-The optimizer choices in transformer training aren't arbitrary:
-
-- **Adam** provides per-parameter adaptive learning rates, which matter when gradient scales vary widely across layers and parameter groups.
-- **AdamW** decouples weight decay from the adaptive mechanism, restoring predictable regularization.
-- **Warmup + cosine decay** addresses the cold-start problem of Adam's variance estimates and provides a principled schedule for step size throughout training.
-- **Gradient clipping** makes training robust to bad batches without discarding the gradient signal.
-
-In Part 2, we'll look at self-supervision and the training loop — what cross-entropy loss is measuring, how next-token prediction works as a training objective, and what the training loop actually looks like end-to-end.
+AdamW makes deep network training tractable, but it's one piece of a system. The architectural solutions in the table are equally load-bearing — and we'll see exactly why in Part 4.
 
 ---
 

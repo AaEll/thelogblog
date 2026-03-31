@@ -1,25 +1,14 @@
 @import 'tailwindcss';
 
 :root {
-  --terminal-bg: #0a0a0a;
-  --terminal-text: #33ff33;
-  --terminal-dim: #1f7a2a;
-  --terminal-muted: #2a5a2a;
-  --terminal-bright: #7fff7f;
-  --terminal-link: #00ffff;
-  --terminal-code-bg: #050505;
-  --terminal-border: #1a3a1a;
-
-  /* syntax highlighting — terminal palette */
-  --sh-class: #7fff7f;
-  --sh-identifier: #33ff33;
-  --sh-sign: #1f7a2a;
-  --sh-string: #00ffcc;
-  --sh-keyword: #00ffff;
-  --sh-comment: #2a5a2a;
-  --sh-jsxliterals: #99ff99;
-  --sh-property: #aaff44;
-  --sh-entity: #aaff44;
+  --terminal-bg: #000000;
+  --terminal-text: #e8e8e8;
+  --terminal-dim: #888888;
+  --terminal-muted: #555555;
+  --terminal-bright: #ffffff;
+  --terminal-link: #e8e8e8;
+  --terminal-code-bg: #0d0d0d;
+  --terminal-border: #2a2a2a;
 }
 
 html {
@@ -30,8 +19,8 @@ html {
 }
 
 ::selection {
-  background-color: #33ff33;
-  color: #0a0a0a;
+  background-color: #ffffff;
+  color: #000000;
 }
 
 .prose .anchor {

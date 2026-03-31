@@ -1,0 +1,319 @@
+---
+title: 'Bridging the Gap from Classical ML to Transformers, Part 1 - AdamW & Training Stability'
+publishedAt: '2026-03-30'
+summary: 'How optimization in deep learning differs from classical ML, why Adam outperforms SGD on transformers, what weight decay actually does in AdamW, and how to recognize and fix training instability.'
+---
+
+If you come from classical ML, you probably have a working mental model of gradient descent:
+compute a loss, take a step in the negative gradient direction, repeat.
+For logistic regression, this is a well defined 'convex-optimization' problem, guaranteed to converge (with proper lr annealing) to a global optima.
+It's also likely you understand that deep learning is a 'non-convex-optimization' problem not guaranteed to converge to a global optima.
+
+AdamW has established itself as the SOTA optimizer for most deep learning applications (outside of some natural gradient applications in RL). AdamW may seem like a complex beast to understand or 
+implement, but is actually the combination of 4 fairly simple ideas, Stochastic-Gradient-Descent (SGD), Momentum, RMSProp, and L2-Regularization.
+
+Beyond non-convex-optimization, deep learning optimization suffers from training stability issues that classical models rarely suffer from.
+The geometry of the loss landscape creates gradient explosion and vanishing pitfalls beyond the local-minima problem.
+We will cover the details of AdamW optimizer, cover the largest issues in training stability in deep learning, and how Adam improves training stability.
+
+---
+
+## AdamW as a combination of Stochastic-Gradient-Descent (SGD), Momentum, RMSProp, and L2-Regularization
+
+AdamW wasn't designed from scratch — it's the result of stacking four ideas, Stochastic-Gradient-Descent (SGD), Momentum, RMSProp, and L2-Regularization.
+Where Adam is the simpler combination of the first 3, Stochastic-Gradient-Descent (SGD), Momentum and RMSProp.
+
+Building AdamW up step by step is the clearest way to understand what each hyperparameter controls and why the defaults are what they are.
+
+### Stochastic Gradient Descent
+
+Plain stochastic gradient descent is the foundation of Adam and AdamW.
+
+```python
+x_sample, y_sample = sample_minibatch()
+loss = compute_loss(y_sample, model(x_sample))
+grad = d(loss)/d(theta)
+theta = theta - lr * grad
+```
+
+However, in both toy problems and real world problems pure SGD led to two major issues:
+* **Gradient noise** makes the update direction unreliable step-to-step — adjacent mini-batches can point in opposite directions, causing oscillation. *This is addressed by Momentum*.
+* **A single global learning rate** doesn't fit all parameters at all times — a step size appropriate for one layer can be too large or too small for another. *This is addressed by RMSProp*.
+
+### Momentum — Smooth the gradient direction
+
+Momentum maintains an exponential moving average of past gradients, often called velocity `v`, and updates weight by `v` rather than the raw gradient:
+
+```python
+v = beta1 * v + (1 - beta1) * grad
+theta = theta - lr * v
+```
+
+With `beta1=0.9`, each step is 90% last step's direction plus 10% the new gradient. This damps oscillations in noisy directions and accelerates movement along consistent ones — the ball-rolling-downhill analogy. The gradient direction is now stable. The per-parameter scale problem remains.
+
+### RMSProp — Adapt the learning rate per parameter
+
+RMSProp maintains an exponential moving average of past *squared* gradient magnitude, often called the second-moment `s`, for each parameter and uses it to normalize the step size:
+
+```python
+s = beta2 * s + (1 - beta2) * grad**2  
+theta = theta - lr * grad / (sqrt(s) + eps)
+```
+
+Parameters that have been receiving large gradients accumulate large second-moment `s` values, shrinking their effective learning rate. Parameters with historically small gradients get larger effective steps. One global `lr` now behaves like per-parameter adaptive rates. Gradient direction is still the raw noisy gradient — no momentum yet.
+
+### Adam — Combining Momentum and RMSProp
+
+Adam applies both RMSProp and Momentum simultaneously: smooth the gradient direction with momentum (`v`), and normalize the step size with the RMS of past gradients (`s`).
+
+Adam also adds a bias correction terms (`1 / (1 - beta**t)`) account for the fact that `v` and `s` are initialized at zero — without them, early steps are systematically underestimated. The correction fades to ~1 as `t` grows and the accumulators warm up.
+
+
+```python
+v = beta1 * m + (1 - beta1) * grad         # first moment (momentum)
+s = beta2 * v + (1 - beta2) * grad**2      # second moment (RMS)
+
+v_hat = v / (1 - beta1**t)                 # bias correction
+s_hat = s / (1 - beta2**t)                 # bias correction
+
+theta = theta - lr * v_hat / (sqrt(s_hat) + eps)
+```
+
+A common interview question, is how to define Adam and what are the B1, B2 hyperparameters.
+Now, we can simply say, B1 and B2 are the exponential moving average hyper-parameters of the first and second moment of the loss.
+
+Common values for B1 and B2, are (0.9, 0.999) <- defaults in pytorch, or (0.9, 0.98) <- common in (LLM pre-training publications)[https://proceedings.neurips.cc/paper_files/paper/2017/file/3f5ee243547dee91fbd053c1c4a845aa-Paper.pdf].
+
+The common refrain on B2 is to use a higher (0.999) B2 for dense gradients problems, and lower (0.95) B2 for sparse gradient problems.
+
+
+### AdamW — Decoupled weight decay
+
+AdamW is simply Adam with a "decoupled" form of L2 regularization.
+Regulaization needs to be "decoupled" because of RMSProp. In RMSProp (and Adam) a classical regularization term is a part of the loss,
+ and when the gradient is applied that regularization term's gradient is passed through the same adaptive RMSProp denominator as the loss gradient.
+ This leads to the effective strength of the regulaization scaling up and down unpredictably across parameters.
+
+AdamW fixes this by moving the L2 weight decay *out* of the loss & gradient computation and applying it directly to the parameter update:
+
+```python
+# AdamW (correct: decay is applied separately, after the adaptive step)
+v = beta1 * v + (1 - beta1) * grad_loss
+s = beta2 * s + (1 - beta2) * grad_loss**2
+v_hat = v / (1 - beta1**t)
+s_hat = s / (1 - beta2**t)
+theta = theta - lr * v_hat / (sqrt(s_hat) + eps) - lr * lambda * theta
+```
+
+The decoupled AdamW applies a uniform shrinkage rate to every parameter on every step, regardless of gradient history. The lambda `weight_decay` is now a clean, interpretable hyperparameter.
+
+The following sections cover each of these components in more depth — the failure modes they address, their implementation, and how they interact with training stability.
+
+
+### A minimal AdamW implementation
+
+```python
+import torch
+
+class CustomAdamW(torch.optim.Optimizer):
+    def __init__(self, params, lr=1e-3, betas=(0.9, 0.98), weight_decay=1e-2, eps=1e-8):
+        defaults = dict(lr=lr, betas=betas, weight_decay=weight_decay, eps=eps)
+        super().__init__(params, defaults)
+        for group in self.param_groups:
+            for p in group['params']:
+                self.state[p]['t'] = 0
+                self.state[p]['v'] = torch.zeros_like(p)  # first moment
+                self.state[p]['s'] = torch.zeros_like(p)  # second moment
+
+    @torch.no_grad()
+    def step(self):
+        for group in self.param_groups:
+            lr = group['lr']
+            beta1, beta2 = group['betas']
+
+            for p in group['params']:
+                if p.grad is None:
+                    continue
+
+                state = self.state[p]
+                state['t'] += 1
+                v, s, t = state['v'], state['s'], state['t']
+
+                v.mul_(beta1).add_(p.grad, alpha=1 - beta1)
+                s.mul_(beta2).addcmul_(p.grad, p.grad, value=1 - beta2)
+
+                v_hat = v / (1 - beta1 ** t)
+                s_hat = s / (1 - beta2 ** t)
+
+                # adaptive gradient step
+                p.addcdiv_(v_hat, s_hat.sqrt().add_(group['eps']), value=-lr)
+                # decoupled weight decay applied after adaptive step
+                p.mul_(1 - lr * group['weight_decay'])
+```
+
+---
+
+## What SGD Gets Wrong for Deep Networks
+
+Stochastic gradient descent with momentum works well for convex problems and shallower networks.
+For deep networks — and transformers in particular — it has two structural weaknesses.
+
+**Different parameters need different learning rates.** In a transformer, some parameters receive dense, large gradients throughout training (e.g., early embedding layers). Others receive sparse or small gradients (e.g., attention projections in later layers that specialize gradually). A single global learning rate is too large for the former and too small for the latter.
+
+**Gradient magnitudes vary wildly across layers.** Even with careful initialization, the gradient norms across layers of a deep network span orders of magnitude. SGD applies the same learning rate everywhere; a step size that's appropriate for one layer is catastrophic for another.
+
+These problems compound as networks get deeper. Transformers with dozens of layers, trained on vast data, make both issues acute.
+
+---
+
+## Adam: Per-Parameter Adaptive Learning Rates
+
+Adam (Adaptive Moment Estimation) addresses both problems by maintaining running statistics for each parameter and using them to normalize the gradient before taking a step.
+
+For each parameter `θ`, Adam tracks:
+- `m`: a running estimate of the first moment (mean) of the gradient
+- `v`: a running estimate of the second moment (uncentered variance) of the gradient squared
+
+At each step `t` with gradient `g`:
+
+```python
+m = beta1 * m + (1 - beta1) * g          # momentum term
+v = beta2 * v + (1 - beta2) * g**2       # RMS term
+
+m_hat = m / (1 - beta1**t)               # bias correction
+v_hat = v / (1 - beta2**t)               # bias correction
+
+theta = theta - lr * m_hat / (sqrt(v_hat) + eps)
+```
+
+The `sqrt(v_hat)` denominator is the key: it scales the effective learning rate by the inverse of the gradient's root-mean-square. Parameters with consistently large gradients get smaller effective steps; parameters with small or infrequent gradients get larger effective steps.
+
+This is the per-parameter adaptive learning rate. It's why Adam converges quickly on deep networks where SGD either diverges or creeps.
+
+**Beta defaults.** The standard defaults are `beta1=0.9`, `beta2=0.999`, `eps=1e-8`. In practice:
+- `beta1` controls how much momentum smooths the gradient direction
+- `beta2` controls how quickly the variance estimate adapts — 0.999 means it's very slow to forget past gradient magnitudes
+- `eps` prevents division by zero and has a small effect on very small gradients
+
+
+---
+
+## Weight Decay: What It Means in Adam vs SGD
+
+In classical L2 regularization, you add a penalty term `lambda * ||theta||^2` to the loss. Taking its gradient and incorporating it into gradient descent gives:
+
+```
+theta = theta - lr * (grad_loss + lambda * theta)
+       = (1 - lr * lambda) * theta - lr * grad_loss
+```
+
+The `(1 - lr * lambda)` factor shrinks the parameter each step — hence "weight decay."
+
+The problem with naively applying L2 regularization inside Adam is that the regularization gradient `lambda * theta` gets *adapted* by the same `v` denominator that adapts the loss gradient. Parameters with large gradient histories get less regularization; parameters with small gradient histories get more. The regularization strength becomes entangled with the gradient scale, which means you lose direct control over it.
+
+**AdamW** decouples weight decay from the gradient update entirely. The weight decay is applied directly to the parameters, independent of the adaptive term:
+
+```python
+# Adam with L2 regularization (coupled — don't do this)
+g = grad_loss + lambda * theta
+# ... then adaptive update on g
+
+# AdamW (decoupled — correct)
+g = grad_loss
+# ... adaptive update on g
+theta = theta - weight_decay * theta   # applied separately, after adaptive step
+```
+
+In PyTorch:
+
+```python
+optimizer = torch.optim.AdamW(
+    model.parameters(),
+    lr=3e-4,
+    betas=(0.9, 0.999),
+    weight_decay=0.1
+)
+```
+
+A `weight_decay` of 0.1 is typical for transformer pretraining. Values around 0.01–0.1 are common; too large and the model struggles to retain large weights that are genuinely useful.
+
+**Interview shorthand:** Adam with L2 regularization ≠ AdamW. The difference is whether weight decay is applied inside the adaptive step or after it. AdamW gives you predictable regularization strength regardless of gradient history.
+
+---
+
+## Learning Rate Schedules
+
+A fixed learning rate is rarely optimal for transformer training. Two schedules appear in essentially every major transformer training run.
+
+### Linear Warmup
+
+At the start of training, the `v` term in Adam (the variance estimate) is initialized to zero and hasn't accumulated meaningful statistics yet. The bias correction partially accounts for this, but early gradient steps can still be noisy and poorly scaled. Starting with a very small learning rate and linearly ramping it up over the first few thousand steps (warmup) avoids large early updates that can destabilize training before the optimizer has calibrated.
+
+```python
+def lr_with_warmup(step, warmup_steps, base_lr):
+    if step < warmup_steps:
+        return base_lr * step / warmup_steps
+    return base_lr
+```
+
+### Cosine Decay
+
+After warmup, the learning rate is decayed following a cosine curve down to a small fraction of the peak (often 10%):
+
+```python
+import math
+
+def cosine_lr(step, warmup_steps, total_steps, base_lr, min_lr_fraction=0.1):
+    if step < warmup_steps:
+        return base_lr * step / warmup_steps
+    progress = (step - warmup_steps) / (total_steps - warmup_steps)
+    cosine_factor = 0.5 * (1 + math.cos(math.pi * progress))
+    min_lr = base_lr * min_lr_fraction
+    return min_lr + cosine_factor * (base_lr - min_lr)
+```
+
+The intuition: early training benefits from larger steps to escape poor initializations quickly; late training benefits from smaller steps for precise convergence. Cosine decay provides a smooth transition between the two.
+
+---
+
+## Recognizing Training Instability
+
+Training instability manifests in a few recognizable patterns. Knowing them is useful both for debugging and for interview discussions about training at scale.
+
+**Loss spikes.** A sudden jump in training loss, often followed by partial recovery, usually indicates a single bad batch or a learning rate that's too high. At scale, these can cascade — a spike corrupts the optimizer state (`v` and `s`), which causes another spike. Gradient clipping (discussed below) is the primary defense.
+
+**Loss divergence.** Loss grows monotonically without recovery. Common causes: learning rate too high, missing or misconfigured warmup, exploding gradients from deep residual paths, or numerical issues (NaN/Inf) propagating through the network.
+
+**Loss plateaus early.** Loss stops decreasing well before expected convergence. Common causes: learning rate too low, weight decay too high, or dying neurons/attention heads that no longer contribute gradient signal.
+
+**Loss is noisy but trending.** Usually fine — this is normal stochastic behavior, especially with small batch sizes. If the noise is excessive, gradient accumulation (summing gradients over several micro-batches) reduces variance.
+
+### Gradient Clipping
+
+Gradient clipping caps the global gradient norm before each optimizer step:
+
+```python
+torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+optimizer.step()
+```
+
+This doesn't prevent large gradients from providing signal — it rescales the entire gradient vector so its norm doesn't exceed `max_norm`. The direction is preserved; only the magnitude is bounded. `max_norm=1.0` is a standard default for transformer training.
+
+Gradient clipping is a near-universal component of transformer training runs. If asked about it in an interview: it's not a hack — it's a deliberate design choice that makes training more robust to outlier batches without discarding gradient information.
+
+---
+
+## Putting It Together
+
+The optimizer choices in transformer training aren't arbitrary:
+
+- **Adam** provides per-parameter adaptive learning rates, which matter when gradient scales vary widely across layers and parameter groups.
+- **AdamW** decouples weight decay from the adaptive mechanism, restoring predictable regularization.
+- **Warmup + cosine decay** addresses the cold-start problem of Adam's variance estimates and provides a principled schedule for step size throughout training.
+- **Gradient clipping** makes training robust to bad batches without discarding the gradient signal.
+
+In Part 2, we'll look at self-supervision and the training loop — what cross-entropy loss is measuring, how next-token prediction works as a training objective, and what the training loop actually looks like end-to-end.
+
+---
+
+*Next: [Part 2 — Self-Supervision, Cross-Entropy & the Training Loop](#)*

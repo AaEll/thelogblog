@@ -113,8 +113,8 @@ The common refrain on B2 is to use a higher (0.999) B2 for dense gradients probl
 ### AdamW — Decoupled weight decay
 
 AdamW is simply Adam with a "decoupled" form of L2 regularization.
-Regulaization needs to be "decoupled" because of RMSProp. In RMSProp (and Adam) a classical regularization term is a part of the loss,
- and when the gradient is applied that regularization term's gradient is passed through the same adaptive RMSProp denominator as the loss gradient.
+Regulaization needs to be "decoupled" because of RMSProp. In RMSProp (and Adam), a classical regularization term is a part of the loss,
+ and when the gradient is applied that regularization term's gradient, as part of the loss gradient, is passed through the same adaptive RMSProp denominator.
  This leads to the effective strength of the regulaization scaling up and down unpredictably across parameters.
 
 AdamW fixes this by moving the L2 weight decay *out* of the loss & gradient computation and applying it directly to the parameter update:

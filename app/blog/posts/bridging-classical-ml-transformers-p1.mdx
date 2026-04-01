@@ -25,6 +25,29 @@ Where Adam is the simpler combination of the first 3, Stochastic-Gradient-Descen
 
 Building AdamW up step by step is the clearest way to understand what each hyperparameter controls and why the defaults are what they are.
 
+```
+  SGD       theta -= lr * grad
+       │
+       │  + smooth noisy gradient direction
+       ▼
+  Momentum  theta -= lr * v
+               v = β₁v + (1-β₁)*grad
+       │
+       │  + per-parameter adaptive learning rate
+       ▼
+  RMSProp   theta -= lr * grad / (sqrt(s) + ε)
+               s = β₂s + (1-β₂)*grad²
+       │
+       │  + combine both, add bias correction
+       ▼
+  Adam      theta -= lr * v̂ / (sqrt(ŝ) + ε)
+       │
+       │  + decouple weight decay from gradient
+       ▼
+  AdamW     theta -= lr * v̂ / (sqrt(ŝ) + ε)
+            theta -= lr * λ * theta
+```
+
 ### Stochastic Gradient Descent
 
 Plain stochastic gradient descent is the foundation of Adam and AdamW.
@@ -82,7 +105,7 @@ theta = theta - lr * v_hat / (sqrt(s_hat) + eps)
 A common interview question, is how to define Adam and what are the B1, B2 hyperparameters.
 Now, we can simply say, B1 and B2 are the exponential moving average hyper-parameters of the first and second moment of the loss.
 
-Common values for B1 and B2, are (0.9, 0.999) <- defaults in pytorch, or (0.9, 0.98) <- common in (LLM pre-training publications)[https://proceedings.neurips.cc/paper_files/paper/2017/file/3f5ee243547dee91fbd053c1c4a845aa-Paper.pdf].
+Common values for B1 and B2 are `(0.9, 0.999)` (PyTorch defaults) or `(0.9, 0.98)` (common in [LLM pre-training publications](https://proceedings.neurips.cc/paper_files/paper/2017/file/3f5ee243547dee91fbd053c1c4a845aa-Paper.pdf)).
 
 The common refrain on B2 is to use a higher (0.999) B2 for dense gradients problems, and lower (0.95) B2 for sparse gradient problems.
 
@@ -174,6 +197,19 @@ Training instability has a few recognizable signatures in the loss curve:
 **Early plateau** — loss stops improving long before convergence — usually means the learning rate is too low, weight decay is too aggressive, or vanishing gradients are starving the early layers of signal.
 
 **Noisy but trending** — generally fine. This is normal stochastic behavior, especially with small batch sizes or high dropout. Gradient accumulation reduces variance if it's excessive.
+
+```
+  Healthy          Spike           Divergence     Early Plateau
+
+  loss             loss            loss           loss
+  │╲               │   ╭╮          │          ╱   │─────────
+  │ ╲──────        │───╯╰──────    │        ╱     │
+  │                │               │      ╱       │
+  └─────────       └─────────      └─────────     └─────────
+  steps            steps           steps          steps
+                       ↑               ↑               ↑
+                   lr spike        lr / NaN        lr / wd
+```
 
 ---
 
